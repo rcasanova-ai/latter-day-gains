@@ -1,0 +1,12 @@
+import { Hono } from 'hono';
+import { paymentMiddleware } from 'x402-hono';
+type Bindings = { DB: D1Database; ASSETS: Fetcher; PAY_TO: string; NETWORK: string; FACILITATOR: string };
+const app = new Hono<{ Bindings: Bindings }>();
+const categories = new Set(['love','money','work','health','crypto','other']);
+const replies = ['Your request has been forwarded to the appropriate celestial department.','Our angels are experiencing higher than normal prayer volumes.','This matter has been escalated to a mysterious higher power.','Your miracle request is now in the eternal queue.','A divine representative may or may not be in touch.'];
+app.get('/api/health', c => c.json({ok:true,product:'The Church of Latter Day Gains',network:c.env.NETWORK}));
+app.get('/api/stats', async c => {const rows=await c.env.DB.prepare('SELECT category, COUNT(*) AS count FROM prayers GROUP BY category').all<{category:string;count:number}>();const total=rows.results.reduce((s,r)=>s+r.count,0);return c.json({total,revenueUsd:(total*.10).toFixed(2),categories:rows.results});});
+app.get('/api/prayers',async c=>{const r=await c.env.DB.prepare("SELECT id,body,category,created_at FROM prayers WHERE visibility='public' ORDER BY created_at DESC LIMIT 30").all();return c.json(r.results);});
+app.use('/api/pray',async(c,next)=>{const wallet=c.env.PAY_TO;if(!/^0x[\\da-fA-F]{40}$/.test(wallet)||/^0x0{40}$/.test(wallet))return c.json({error:'Payment recipient not configured'},503);const middleware=paymentMiddleware(wallet as `0x${string}`,{'/api/pray':{price:'$0.10',network:c.env.NETWORK as 'base'|'base-sepolia',config:{description:'Submit one satirical prayer'}}},{url:c.env.FACILITATOR});return middleware(c,next);});
+app.post('/api/pray',async c=>{let data:any;try{data=await c.req.json()}catch{return c.json({error:'Invalid JSON'},400)}const body=typeof data?.prayer==='string'?data.prayer.trim():'';if(body.length<3||body.length>1000)return c.json({error:'Prayer must be 3 to 1000 characters'},400);const category=categories.has(data?.category)?data.category:'other';const visibility=data?.public===true?'public':'private';const id=crypto.randomUUID();await c.env.DB.prepare('INSERT INTO prayers (id,body,category,visibility) VALUES (?,?,?,?)').bind(id,body,category,visibility).run();return c.json({ticket:id.slice(0,8).toUpperCase(),status:'Awaiting Miracle',response:replies[Math.floor(Math.random()*replies.length)],disclaimer:'Entertainment only. No supernatural outcome promised.',visibility},201);});
+app.notFound(c=>c.json({error:'Not found'},404));export default app;
