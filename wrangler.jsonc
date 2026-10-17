@@ -1,0 +1,24 @@
+{
+  "name": "latter-day-gains",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-17",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "vars": {
+    "NETWORK": "base-sepolia",
+    "PAY_TO": "0x0000000000000000000000000000000000000000",
+    "FACILITATOR": "https://x402.org/facilitator"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "latter-day-gains-db",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+    }
+  ]
+}
